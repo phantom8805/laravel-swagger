@@ -21,7 +21,7 @@ use RonasIT\Support\AutoDoc\Traits\AutoDocRequestTrait;
 use RonasIT\Support\AutoDoc\Traits\GetDependenciesTrait;
 use RonasIT\Support\AutoDoc\Exceptions\WrongSecurityConfigException;
 use RonasIT\Support\AutoDoc\Exceptions\DataCollectorClassNotFoundException;
-use RonasIT\Support\DataCollectors\LocalDataCollector;
+use RonasIT\Support\AutoDoc\Services\LocalDataCollector;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Http\Testing\File;
 
@@ -46,6 +46,17 @@ class SwaggerService
     private $item;
     private $security;
 
+    /**
+     * SwaggerService constructor.
+     *
+     * @param Container $container
+     *
+     * @throws DataCollectorClassNotFoundException
+     * @throws WrongSecurityConfigException
+     * @throws \Exception
+     * @throws \Illuminate\Container\EntryNotFoundException
+     * @throws \Throwable
+     */
     public function __construct(Container $container)
     {
         $this->setDataCollector();
@@ -67,6 +78,12 @@ class SwaggerService
         }
     }
 
+
+    /**
+     * @throws DataCollectorClassNotFoundException
+     * @throws \Exception
+     * @throws \Illuminate\Container\EntryNotFoundException
+     */
     protected function setDataCollector() {
         $dataCollectorClass = config('auto-doc.data_collector');
 
@@ -79,6 +96,14 @@ class SwaggerService
         }
     }
 
+
+    /**
+     * @return array
+     * @throws WrongSecurityConfigException
+     * @throws \Exception
+     * @throws \Illuminate\Container\EntryNotFoundException
+     * @throws \Throwable
+     */
     protected function generateEmptyData() {
         $data = [
             'swagger' => config('auto-doc.swagger.version'),
@@ -104,12 +129,23 @@ class SwaggerService
         return $data;
     }
 
+
+    /**
+     * @return mixed
+     * @throws \Exception
+     * @throws \Illuminate\Container\EntryNotFoundException
+     */
     protected function getAppUrl() {
         $url = config('app.url');
 
         return str_replace(['http://', 'https://', '/'], '', $url);
     }
 
+
+    /**
+     * @return array|string
+     * @throws WrongSecurityConfigException
+     */
     protected function generateSecurityDefinition() {
         $availableTypes = ['jwt', 'laravel'];
         $security = $this->security;
@@ -127,6 +163,12 @@ class SwaggerService
         ];
     }
 
+
+    /**
+     * @param $type
+     *
+     * @return array
+     */
     protected function generateSecurityDefinitionObject($type) {
         switch ($type) {
             case 'jwt':
@@ -145,6 +187,12 @@ class SwaggerService
         }
     }
 
+    /**
+     * @param Request $request
+     * @param         $response
+     *
+     * @throws \ReflectionException
+     */
     public function addData(Request $request, $response) {
         $this->request = $request;
 
@@ -156,6 +204,10 @@ class SwaggerService
         $this->dataCollector->saveTmpData($this->data);
     }
 
+    /**
+     * @throws \Exception
+     * @throws \Illuminate\Container\EntryNotFoundException
+     */
     protected function prepareItem() {
         $this->uri = "/{$this->getUri()}";
         $this->method = strtolower($this->request->getMethod());
@@ -175,6 +227,12 @@ class SwaggerService
         $this->item = &$this->data['paths'][$this->uri][$this->method];
     }
 
+
+    /**
+     * @return null|string|string[]
+     * @throws \Exception
+     * @throws \Illuminate\Container\EntryNotFoundException
+     */
     protected function getUri() {
         $uri = $this->request->route()->uri();
         $basePath = preg_replace("/^\//", '', config('auto-doc.basePath'));
@@ -183,6 +241,10 @@ class SwaggerService
         return preg_replace("/^\//", '', $preparedUri);
     }
 
+
+    /**
+     * @return array
+     */
     protected function getPathParams() {
         $params = [];
 
@@ -207,6 +269,12 @@ class SwaggerService
         return $result;
     }
 
+
+    /**
+     * @param $request
+     *
+     * @throws \ReflectionException
+     */
     protected function parseRequest($request) {
         $this->saveConsume();
         $this->saveTags();
@@ -226,6 +294,10 @@ class SwaggerService
         $this->saveDescription($concreteRequest, $annotations);
     }
 
+
+    /**
+     * @param $response
+     */
     protected function parseResponse($response) {
         $produceList = $this->data['paths'][$this->uri][$this->method]['produces'];
 
@@ -250,6 +322,12 @@ class SwaggerService
         }
     }
 
+
+    /**
+     * @param $code
+     * @param $content
+     * @param $produce
+     */
     protected function saveExample($code, $content, $produce) {
         $description = $this->getResponseDescription($code);
         $availableContentTypes = [
@@ -265,6 +343,14 @@ class SwaggerService
         }
     }
 
+
+    /**
+     * @param        $content
+     * @param        $mimeType
+     * @param string $description
+     *
+     * @return array
+     */
     protected function makeResponseExample($content, $mimeType, $description = '')
     {
         $responseExample = [
@@ -283,7 +369,7 @@ class SwaggerService
     }
 
     protected function saveParameters($request, AnnotationsBagInterface $annotations) {
-        $rules = (new $request)->rules();
+        $rules = method_exists($request, 'rules') ? (new $request)->rules() : [];
         $actionName = $this->getActionName($this->uri);
 
         if (in_array($this->method, ['get', 'delete'])) {
@@ -293,9 +379,14 @@ class SwaggerService
         }
     }
 
+
+    /**
+     * @param                         $rules
+     * @param AnnotationsBagInterface $annotations
+     */
     protected function saveGetRequestParameters($rules, AnnotationsBagInterface $annotations) {
         foreach ($rules as $parameter => $rule) {
-            $validation = explode('|', $rule);
+            $validation = $this->getRuleArray($rule);
 
             $description = $annotations->get($parameter, implode(', ', $validation));
 
@@ -319,6 +410,12 @@ class SwaggerService
         }
     }
 
+
+    /**
+     * @param                         $actionName
+     * @param                         $rules
+     * @param AnnotationsBagInterface $annotations
+     */
     protected function savePostRequestParameters($actionName, $rules, AnnotationsBagInterface $annotations) {
         if ($this->requestHasMoreProperties($actionName)) {
             if ($this->requestHasBody()) {
@@ -337,13 +434,19 @@ class SwaggerService
         }
     }
 
+
+    /**
+     * @param $objectName
+     * @param $rules
+     * @param $annotations
+     */
     protected function saveDefinitions($objectName, $rules, $annotations) {
         $data = [
             'type' => 'object',
             'properties' => []
         ];
         foreach ($rules as $parameter => $rule) {
-            $rulesArray = explode('|', $rule);
+            $rulesArray =  $this->getRuleArray($rule);
             $parameterType = $this->getParameterType($rulesArray);
             $this->saveParameterType($data, $parameter, $parameterType);
             $this->saveParameterDescription($data, $parameter, $rulesArray, $annotations);
@@ -357,6 +460,12 @@ class SwaggerService
         $this->data['definitions'][$objectName . 'Object'] = $data;
     }
 
+
+    /**
+     * @param array $validation
+     *
+     * @return mixed|string
+     */
     protected function getParameterType(array $validation) {
         $validationRules = [
             'array' => 'object',
@@ -381,17 +490,35 @@ class SwaggerService
         return $parameterType;
     }
 
+    /**
+     * @param $data
+     * @param $parameter
+     * @param $parameterType
+     */
     protected function saveParameterType(&$data, $parameter, $parameterType) {
         $data['properties'][$parameter] = [
             'type' => $parameterType,
         ];
     }
 
+
+    /**
+     * @param                         $data
+     * @param                         $parameter
+     * @param array                   $rulesArray
+     * @param AnnotationsBagInterface $annotations
+     */
     protected function saveParameterDescription(&$data, $parameter, array $rulesArray, AnnotationsBagInterface $annotations) {
         $description = $annotations->get($parameter, implode(', ', $rulesArray));
         $data['properties'][$parameter]['description'] = $description;
     }
 
+
+    /**
+     * @param $actionName
+     *
+     * @return bool
+     */
     protected function requestHasMoreProperties($actionName) {
         $requestParametersCount = count($this->request->all());
 
@@ -404,6 +531,10 @@ class SwaggerService
         return $requestParametersCount > $objectParametersCount;
     }
 
+
+    /**
+     * @return bool
+     */
     protected function requestHasBody() {
         $parameters = $this->data['paths'][$this->uri][$this->method]['parameters'];
 
@@ -414,6 +545,11 @@ class SwaggerService
         return empty($bodyParamExisted);
     }
 
+
+    /**
+     * @return mixed|null
+     * @throws \ReflectionException
+     */
     public function getConcreteRequest() {
         $controller = $this->request->route()->getActionName();
 
@@ -438,6 +574,10 @@ class SwaggerService
         });
     }
 
+
+    /**
+     *
+     */
     public function saveConsume() {
         $consumeList = $this->data['paths'][$this->uri][$this->method]['consumes'];
         $consume = $this->request->header('Content-Type');
@@ -447,6 +587,9 @@ class SwaggerService
         }
     }
 
+    /**
+     *
+     */
     public function saveTags() {
         $tagIndex = 1;
 
@@ -457,6 +600,11 @@ class SwaggerService
         $this->item['tags'] = [$tag];
     }
 
+
+    /**
+     * @param                         $request
+     * @param AnnotationsBagInterface $annotations
+     */
     public function saveDescription($request, AnnotationsBagInterface $annotations) {
         $this->item['summary'] = $this->getSummary($request, $annotations);
 
@@ -467,12 +615,18 @@ class SwaggerService
         }
     }
 
+    /**
+     *
+     */
     protected function saveSecurity() {
         if ($this->requestSupportAuth()) {
             $this->addSecurityToOperation();
         }
     }
 
+    /**
+     *
+     */
     protected function addSecurityToOperation() {
         $security = &$this->data['paths'][$this->uri][$this->method]['security'];
         if (empty($security)) {
@@ -482,6 +636,13 @@ class SwaggerService
         }
     }
 
+
+    /**
+     * @param                         $request
+     * @param AnnotationsBagInterface $annotations
+     *
+     * @return mixed|null|string|string[]
+     */
     protected function getSummary($request, AnnotationsBagInterface $annotations) {
         $summary = $annotations->get('summary');
 
@@ -492,6 +653,10 @@ class SwaggerService
         return $summary;
     }
 
+
+    /**
+     * @return bool
+     */
     protected function requestSupportAuth() {
         switch ($this->security) {
             case 'jwt' :
@@ -506,6 +671,12 @@ class SwaggerService
 
     }
 
+
+    /**
+     * @param $request
+     *
+     * @return null|string|string[]
+     */
     protected function parseRequestName($request) {
         $explodedRequest = explode('\\', $request);
         $requestName = array_pop($explodedRequest);
@@ -515,6 +686,13 @@ class SwaggerService
         return preg_replace('/[_]/', ' ', $underscoreRequestName);
     }
 
+
+    /**
+     * @param $code
+     *
+     * @return mixed
+     * @throws \ReflectionException
+     */
     protected function getResponseDescription($code) {
         $request = $this->getConcreteRequest();
 
@@ -534,12 +712,23 @@ class SwaggerService
         );
     }
 
+
+    /**
+     * @param $uri
+     *
+     * @return string
+     */
     protected function getActionName($uri) {
         $action = preg_replace('[\/]','',$uri);
 
         return Str::camel($action);
     }
 
+
+    /**
+     * @throws \Exception
+     * @throws \Illuminate\Container\EntryNotFoundException
+     */
     protected function saveTempData() {
         $exportFile = config('auto-doc.files.temporary');
         $data = json_encode($this->data);
@@ -547,16 +736,30 @@ class SwaggerService
         file_put_contents($exportFile, $data);
     }
 
+
+    /**
+     *
+     */
     public function saveProductionData() {
         $this->dataCollector->saveData();
     }
 
+
+    /**
+     * @return mixed
+     */
     public function getDocFileContent() {
         $data = $this->dataCollector->getDocumentation();
 
         return $data;
     }
 
+
+    /**
+     * @param $input
+     *
+     * @return string
+     */
     private function camelCaseToUnderScore($input) {
         preg_match_all('!([A-Z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $input, $matches);
         $ret = $matches[0];
@@ -566,6 +769,12 @@ class SwaggerService
         return implode('_', $ret);
     }
 
+
+    /**
+     * @param $properties
+     *
+     * @return array
+     */
     protected function generateExample($properties) {
         $parameters = $this->replaceObjectValues($this->request->all());
         $example = [];
@@ -575,6 +784,12 @@ class SwaggerService
         return $example;
     }
 
+
+    /**
+     * @param $parameters
+     *
+     * @return array
+     */
     protected function replaceObjectValues($parameters) {
         $classNamesValues = [
             File::class => '[uploaded_file]',
@@ -614,6 +829,11 @@ class SwaggerService
         }
     }
 
+    /**
+     * @param $type
+     *
+     * @return mixed
+     */
     private function getDefaultValueByType($type) {
         $values = [
             'object' => 'null',
@@ -649,6 +869,10 @@ class SwaggerService
         return $info;
     }
 
+
+    /**
+     *
+     */
     protected function throwTraitMissingException()
     {
         $message = "ERROR:\n".
@@ -659,5 +883,24 @@ class SwaggerService
         fwrite(STDERR, print_r($message, TRUE));
 
         die;
+    }
+
+    /**
+     * @param array|string $rule
+     * @return array
+     */
+    protected function getRuleArray($rule)
+    {
+        if (is_string($rule)) {
+            return explode('|', $rule);
+        }
+
+        if(is_array($rule)) {
+            return array_map(function ($validationItem){
+                return (string)$validationItem;
+            }, $rule);
+        }
+
+        return [];
     }
 }
