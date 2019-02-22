@@ -10,9 +10,9 @@
 namespace RonasIT\Support\AutoDoc\Http\Controllers;
 
 use Illuminate\Routing\Controller as BaseController;
-use Illuminate\Support\Facades\Request;
 use RonasIT\Support\AutoDoc\Services\SwaggerService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Illuminate\Http\Response;
 
 class AutoDocController extends BaseController
 {
@@ -32,7 +32,6 @@ class AutoDocController extends BaseController
 
     public function index()
     {
-
         $data = [
             'secure'           => false,
             'urlToDocs'        => config('auto-doc.production_path'),
@@ -56,5 +55,18 @@ class AutoDocController extends BaseController
         $content = file_get_contents($filePath);
 
         return response($content);
+    }
+
+    public function asset($asset)
+    {
+        $path = swagger_ui_dist_path($asset);
+        return (new Response(
+            file_get_contents($path), 200, [
+                'Content-Type' => (pathinfo($asset))['extension'] == 'css' ?
+                    'text/css' : 'application/javascript',
+            ]
+        ))->setSharedMaxAge(31536000)
+            ->setMaxAge(31536000)
+            ->setExpires(new \DateTime('+1 year'));
     }
 }

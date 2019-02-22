@@ -15,7 +15,8 @@
     "minime/annotations": "2.3.1",
     "ronasit/laravel-helpers": "1.1.*@beta",
     "zircote/swagger-php": "~2.0|3.*",
-    "swagger-api/swagger-ui": "^3.0"
+    "swagger-api/swagger-ui": "^3.0",
+    "darkaonline/l5-swagger": "5.7.*"
   },
   "autoload": {
     "psr-4": {
