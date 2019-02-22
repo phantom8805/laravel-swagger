@@ -19,4 +19,11 @@ Route::group(['prefix' => config()->get('auto-doc.route')], function () {
         'as' => 'l5-swagger.asset',
         'uses' => AutoDocController::class.'@asset'
     ]);
+
+
 });
+
+Route::get(config('auto-doc.production_path'), [
+    'as' => 'swagger.doc',
+    'uses' => AutoDocController::class.'@doc'
+]);

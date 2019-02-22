@@ -20,7 +20,8 @@ class LocalDataCollector implements DataCollectorInterface
      */
     public function __construct()
     {
-        $this->prodFilePath = base_path() . '/' . config('auto-doc.production_path', '');
+        $this->prodFilePath = storage_path(config('auto-doc.production_path'));
+
         if (empty($this->prodFilePath)) {
             throw new \Exception('production path not set');
         }

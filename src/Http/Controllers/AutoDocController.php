@@ -9,10 +9,13 @@
 
 namespace RonasIT\Support\AutoDoc\Http\Controllers;
 
+use Illuminate\Http\Response;
 use Illuminate\Routing\Controller as BaseController;
+use Illuminate\Support\Facades\Storage;
 use RonasIT\Support\AutoDoc\Services\SwaggerService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Illuminate\Http\Response;
+use File;
+use Response as ResponseFacade;
 
 class AutoDocController extends BaseController
 {
@@ -34,14 +37,22 @@ class AutoDocController extends BaseController
     {
         $data = [
             'secure'           => false,
-            'urlToDocs'        => config('auto-doc.production_path'),
+            'urlToDocs'        => route('swagger.doc'),
             'operationsSorter' => null,
             'configUrl'        => null,
             'validatorUrl'     => null
         ];
 
-
         return view('auto-doc::documentation', $data);
+    }
+
+    public function doc()
+    {
+        $filePath = storage_path(config('auto-doc.production_path'));
+        $content = File::get($filePath);
+        return ResponseFacade::make($content, 200, [
+            'Content-Type' => 'application/json',
+        ]);
     }
 
     public function getFile($file)
