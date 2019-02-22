@@ -10,6 +10,7 @@
 namespace RonasIT\Support\AutoDoc\Http\Controllers;
 
 use Illuminate\Routing\Controller as BaseController;
+use Illuminate\Support\Facades\Request;
 use RonasIT\Support\AutoDoc\Services\SwaggerService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -31,7 +32,17 @@ class AutoDocController extends BaseController
 
     public function index()
     {
-        return view('auto-doc::documentation');
+
+        $data = [
+            'secure'           => false,
+            'urlToDocs'        => config('auto-doc.production_path'),
+            'operationsSorter' => null,
+            'configUrl'        => null,
+            'validatorUrl'     => null
+        ];
+
+
+        return view('auto-doc::documentation', $data);
     }
 
     public function getFile($file)

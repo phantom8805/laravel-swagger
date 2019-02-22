@@ -10,6 +10,9 @@ use RonasIT\Support\AutoDoc\Http\Controllers\AutoDocController;
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/auto-doc/documentation', ['uses' => AutoDocController::class.'@documentation']);
-Route::get('/auto-doc/{file}', ['uses' => AutoDocController::class.'@getFile']);
-Route::get('/auto-doc/', ['uses' => AutoDocController::class.'@index']);
+dd(config()->get('auto-doc.route'));
+Route::group(['prefix' => config()->get('auto-doc.route')], function () {
+    Route::get('/documentation', ['uses' => AutoDocController::class.'@documentation']);
+    Route::get('/{file}', ['uses' => AutoDocController::class.'@getFile']);
+    Route::get('/', ['uses' => AutoDocController::class.'@index']);
+});
