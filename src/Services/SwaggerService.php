@@ -357,9 +357,12 @@ class SwaggerService
             'description' => $description
         ];
 
+        $actionName = $this->getActionName($this->uri);
+
         if ($mimeType === 'application/json') {
             $responseExample['schema'] = [
                 'example' => json_decode($content, true),
+                "\$ref" => "#/definitions/{$actionName}Object"
             ];
         } else {
             $responseExample['examples']['example'] = $content;
