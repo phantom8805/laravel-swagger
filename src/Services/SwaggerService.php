@@ -596,7 +596,16 @@ class SwaggerService
         $explodedUri = explode('/', $this->uri);
 
         $tag = array_get($explodedUri, $tagIndex);
+        $tag = str_singular($tag);
 
+        $explodedRouteName = explode('.', $this->request->route()->getName());
+        $routeName = array_get($explodedRouteName, 0);
+        $routeName = str_singular($routeName);
+
+        if($routeName and count($explodedRouteName) > 1 and $routeName !== $tag) {
+            $tag = $routeName;
+        }
+        
         $this->item['tags'] = [$tag];
     }
 
