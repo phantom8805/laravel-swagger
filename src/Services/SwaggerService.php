@@ -369,7 +369,18 @@ class SwaggerService
     }
 
     protected function saveParameters($request, AnnotationsBagInterface $annotations) {
-        $rules = method_exists($request, 'rules') ? (new $request)->rules() : [];
+        $rules = [];
+        if(method_exists($request, 'rules')) {
+
+            $requestInstance = app($request);
+            $route = $this->request->route();
+            $requestInstance->setRouteResolver(function () use ($route) {
+                return $route;
+            });
+
+            $rules = $requestInstance->rules();
+        }
+        
         $actionName = $this->getActionName($this->uri);
 
         if (in_array($this->method, ['get', 'delete'])) {
