@@ -254,18 +254,44 @@ class SwaggerService
 
         $result = [];
 
+        $routeParam = [];
+
+        if(count($params)) {
+            try {
+                $action = $this->request->route()->action;
+                $usedController = $action['controller'];
+                list($controllerName, $controllerAction) = explode('@', $usedController);
+
+                $controllerAnnotations = $this->annotationReader->getMethodAnnotations($controllerName, $controllerAction);
+                $routeParamNames = $controllerAnnotations->getAsArray('routeParam');
+
+                foreach ($routeParamNames as $routeParamName) {
+                    list($paramName, $paramDescription) = explode('=>', $routeParamName);
+                    $explodeParamRes = explode('=>', $routeParamName);
+                    $paramName = $explodeParamRes[0] ?? null;
+                    $paramDescription = $explodeParamRes[1] ?? null;
+
+                    if($paramName && $paramDescription) {
+                        $routeParam[$paramName] = $paramDescription;
+                    }
+                }
+            } catch (\Throwable $e) {
+            }
+        }
+
         foreach ($params as $param) {
             $key = preg_replace('/[{}]/', '', $param);
+            $description = $routeParam[$key] ?? '';
 
             $result[] = [
                 'in' => 'path',
                 'name' => $key,
-                'description' => '',
+                'description' => $description,
                 'required' => true,
                 'type' => 'string'
             ];
         }
-
+        
         return $result;
     }
 
