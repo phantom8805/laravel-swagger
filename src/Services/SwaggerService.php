@@ -398,13 +398,17 @@ class SwaggerService
         $rules = [];
         if(method_exists($request, 'rules')) {
 
-            $requestInstance = app($request);
-            $route = $this->request->route();
-            $requestInstance->setRouteResolver(function () use ($route) {
-                return $route;
-            });
+            try {
+                $requestInstance = app($request);
+                $route = $this->request->route();
+                $requestInstance->setRouteResolver(function () use ($route) {
+                    return $route;
+                });
 
-            $rules = $requestInstance->rules();
+                $rules = $requestInstance->rules();
+            } catch (\Throwable $e) {
+                $rules = [];
+            }
         }
         
         $actionName = $this->getActionName($this->uri);
