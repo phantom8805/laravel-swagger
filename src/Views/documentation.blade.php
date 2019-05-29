@@ -25,6 +25,14 @@
             margin:0;
             background: #fafafa;
         }
+        
+        section.models {
+            display: none!important;
+        }
+
+        section.block {
+            margin-bottom: 100px;
+        }
     </style>
 </head>
 
